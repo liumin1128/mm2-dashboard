@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, Sparkles } from 'lucide-react'
 import { getCurrentUserFn } from '@/lib/auth.server'
 import { getChannelsFn } from '@/lib/channel.server'
 import {
@@ -12,6 +12,7 @@ import {
   type VideoStatus,
   type VideoWithChannel,
 } from '@/lib/video.server'
+import { createPodcastContentFn } from '@/lib/podcast.server'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -68,6 +69,7 @@ interface VideoForm {
   title: string
   status: VideoStatus
   prompt: string
+  content: string
 }
 
 const emptyForm: VideoForm = {
@@ -75,6 +77,7 @@ const emptyForm: VideoForm = {
   title: '',
   status: 'draft',
   prompt: '',
+  content: '',
 }
 
 const statusOptions: { value: VideoStatus; label: string }[] = [
@@ -104,6 +107,7 @@ function VideosPage() {
   const [form, setForm] = useState<VideoForm>(emptyForm)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [generatingContent, setGeneratingContent] = useState(false)
 
   if (!user) {
     return (
@@ -145,6 +149,7 @@ function VideosPage() {
       title: video.title,
       status: video.status,
       prompt: video.prompt,
+      content: video.content || '',
     })
     setError('')
     setIsDialogOpen(true)
@@ -153,6 +158,46 @@ function VideosPage() {
   const handleOpenDelete = (id: string) => {
     setDeletingId(id)
     setIsDeleteDialogOpen(true)
+  }
+
+  const handleGenerateContent = async () => {
+    if (!form.channelId) {
+      setError('请先选择关联频道')
+      return
+    }
+
+    const selectedChannel = channels.find((ch) => ch._id === form.channelId)
+    if (!selectedChannel) {
+      setError('所选频道不存在')
+      return
+    }
+
+    if (!form.prompt) {
+      setError('请先输入视频 Prompt')
+      return
+    }
+
+    setGeneratingContent(true)
+    setError('')
+
+    try {
+      const result = await createPodcastContentFn({
+        data: {
+          systemPrompt: selectedChannel.prompt || '',
+          userPrompt: form.prompt,
+        },
+      })
+
+      setForm({ ...form, content: result.content })
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? `生成失败: ${err.message}`
+          : '生成内容失败，请重试',
+      )
+    } finally {
+      setGeneratingContent(false)
+    }
   }
 
   const handleSubmit = async () => {
@@ -405,6 +450,30 @@ function VideosPage() {
                 onChange={(e) => setForm({ ...form, prompt: e.target.value })}
                 placeholder="输入该视频的处理提示词..."
                 rows={4}
+              />
+            </div>
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="content">Content</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateContent}
+                  disabled={
+                    generatingContent || !form.channelId || !form.prompt
+                  }
+                >
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  {generatingContent ? '生成中...' : '生成内容'}
+                </Button>
+              </div>
+              <Textarea
+                id="content"
+                value={form.content}
+                onChange={(e) => setForm({ ...form, content: e.target.value })}
+                placeholder="视频内容（可手动编辑或点击生成按钮自动生成）..."
+                rows={8}
               />
             </div>
             {error && (

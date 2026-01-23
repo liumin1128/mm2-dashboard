@@ -15,6 +15,7 @@ export interface Video {
   title: string
   status: VideoStatus
   prompt: string
+  content?: string
   createdAt: Date
   updatedAt: Date
 }
@@ -72,6 +73,7 @@ async function fetchVideos(channelId?: string) {
       title: v.title as string,
       status: v.status as VideoStatus,
       prompt: v.prompt as string,
+      content: v.content as string | undefined,
       createdAt: v.createdAt as Date,
       updatedAt: v.updatedAt as Date,
     }
@@ -120,6 +122,7 @@ export const getVideoFn = createServerFn({ method: 'GET' })
         title: video.title as string,
         status: video.status as VideoStatus,
         prompt: video.prompt as string,
+        content: video.content as string | undefined,
         createdAt: video.createdAt as Date,
         updatedAt: video.updatedAt as Date,
       },
@@ -134,6 +137,7 @@ export const createVideoFn = createServerFn({ method: 'POST' })
       title: string
       status: VideoStatus
       prompt: string
+      content?: string
     }) => data,
   )
   .handler(async ({ data }) => {
@@ -154,6 +158,7 @@ export const createVideoFn = createServerFn({ method: 'POST' })
       title: data.title,
       status: data.status,
       prompt: data.prompt,
+      content: data.content || '',
       createdAt: now,
       updatedAt: now,
     })
@@ -174,6 +179,7 @@ export const updateVideoFn = createServerFn({ method: 'POST' })
       title: string
       status: VideoStatus
       prompt: string
+      content?: string
     }) => data,
   )
   .handler(async ({ data }) => {
@@ -196,6 +202,7 @@ export const updateVideoFn = createServerFn({ method: 'POST' })
           title: data.title,
           status: data.status,
           prompt: data.prompt,
+          content: data.content || '',
           updatedAt: new Date(),
         },
       },
