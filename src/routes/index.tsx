@@ -1,6 +1,5 @@
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
-import { getCurrentUserFn, logoutFn } from '@/lib/auth.server'
-import { useState, useEffect } from 'react'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { getCurrentUserFn } from '@/lib/auth.server'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -9,6 +8,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+import { AppSidebar } from '@/components/app-sidebar'
+import { SiteHeader } from '@/components/site-header'
 
 export const Route = createFileRoute('/')({
   component: App,
@@ -19,23 +21,12 @@ export const Route = createFileRoute('/')({
 })
 
 function App() {
-  const navigate = useNavigate()
   const loaderData = Route.useLoaderData()
-  const [user, setUser] = useState(loaderData?.user)
-
-  useEffect(() => {
-    setUser(loaderData?.user)
-  }, [loaderData])
-
-  const handleLogout = async () => {
-    await logoutFn()
-    setUser(null)
-    navigate({ to: '/login' })
-  }
+  const user = loaderData?.user
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="flex min-h-screen items-center justify-center p-4">
         <Card className="w-full max-w-md text-center">
           <CardHeader>
             <CardTitle className="text-2xl">MM2 Dashboard</CardTitle>
@@ -52,30 +43,45 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen">
-      <nav className="border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-semibold">MM2 Dashboard</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-muted-foreground">欢迎, {user.username}</span>
-            <Button variant="destructive" size="sm" onClick={handleLogout}>
-              退出登录
-            </Button>
+    <SidebarProvider>
+      <AppSidebar user={user} />
+      <SidebarInset>
+        <SiteHeader title="仪表盘" />
+        <div className="flex flex-1 flex-col gap-4 p-4 lg:p-6">
+          <div className="grid auto-rows-min gap-4 md:grid-cols-3">
+            <Card>
+              <CardHeader>
+                <CardDescription>欢迎回来</CardDescription>
+                <CardTitle className="text-2xl">{user.username}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  用户ID: {user.userId}
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardDescription>状态</CardDescription>
+                <CardTitle className="text-2xl">已登录</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">系统运行正常</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardDescription>版本</CardDescription>
+                <CardTitle className="text-2xl">v1.0.0</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">最新版本</p>
+              </CardContent>
+            </Card>
           </div>
+          <div className="bg-muted/50 min-h-[50vh] flex-1 rounded-xl md:min-h-min" />
         </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>仪表盘</CardTitle>
-            <CardDescription>您已成功登录</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">用户ID: {user.userId}</p>
-          </CardContent>
-        </Card>
-      </main>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }
