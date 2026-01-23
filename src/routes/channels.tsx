@@ -272,14 +272,14 @@ function ChannelsPage() {
 
       {/* 创建/编辑对话框 */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>{editingId ? '编辑频道' : '添加频道'}</DialogTitle>
             <DialogDescription>
               {editingId ? '修改频道信息' : '添加一个新的 YouTube 频道'}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 overflow-y-auto py-4">
             <div className="grid gap-2">
               <Label htmlFor="name">频道名 *</Label>
               <Input
