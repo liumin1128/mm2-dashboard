@@ -7,6 +7,7 @@ import {
   LogOut,
   ChevronUp,
   Tv,
+  Video,
 } from 'lucide-react'
 import { Link, useNavigate } from '@tanstack/react-router'
 
@@ -42,6 +43,11 @@ const navItems = [
     title: '频道管理',
     url: '/channels',
     icon: Tv,
+  },
+  {
+    title: '视频管理',
+    url: '/videos',
+    icon: Video,
   },
   {
     title: '用户管理',
