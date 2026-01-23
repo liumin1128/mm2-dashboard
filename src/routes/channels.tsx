@@ -279,7 +279,7 @@ function ChannelsPage() {
               {editingId ? '修改频道信息' : '添加一个新的 YouTube 频道'}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 overflow-y-auto py-4">
+          <div className="-mx-1 grid gap-4 overflow-y-auto px-1 py-4">
             <div className="grid gap-2">
               <Label htmlFor="name">频道名 *</Label>
               <Input

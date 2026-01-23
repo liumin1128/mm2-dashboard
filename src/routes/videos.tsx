@@ -361,7 +361,7 @@ function VideosPage() {
               {editingId ? '修改视频信息' : '添加一个新的视频'}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 overflow-y-auto py-4">
+          <div className="-mx-1 grid gap-4 overflow-y-auto px-1 py-4">
             <div className="grid gap-2">
               <Label htmlFor="channelId">关联频道 *</Label>
               <Select
