@@ -76,3 +76,59 @@ export const createPodcastContentFn = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     return await createPodcastContent(data)
   })
+
+// 视频生成请求和响应类型定义
+export interface PodcastVideoRequest {
+  title: string
+  content: string
+}
+
+export interface PodcastVideoResponse {
+  // 根据实际返回的字段定义，暂时设为 any
+  [key: string]: any
+}
+
+// 调用外部 Podcast API 生成视频
+async function createPodcastVideo(
+  request: PodcastVideoRequest,
+): Promise<PodcastVideoResponse> {
+  const baseUrl = getPodcastApiBaseUrl()
+  const url = `${baseUrl}/webhook/podcast/video/create`
+
+  console.log('正在调用 Podcast Video API:', url)
+  console.log('请求参数:', JSON.stringify(request, null, 2))
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    })
+
+    console.log('API 响应状态:', response.status, response.statusText)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('API 错误响应:', errorText)
+      throw new Error(
+        `Podcast Video API 请求失败: ${response.status} ${response.statusText} - ${errorText}`,
+      )
+    }
+
+    const data: PodcastVideoResponse = await response.json()
+    console.log('API 返回数据:', data)
+    return data
+  } catch (error) {
+    console.error('调用 Podcast Video API 失败:', error)
+    throw error
+  }
+}
+
+// 创建视频生成 Server Function 供前端调用
+export const createPodcastVideoFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: PodcastVideoRequest) => data)
+  .handler(async ({ data }) => {
+    return await createPodcastVideo(data)
+  })

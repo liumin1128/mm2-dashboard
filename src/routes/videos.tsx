@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, Sparkles } from 'lucide-react'
+import { Plus, Pencil, Trash2, Sparkles, Play } from 'lucide-react'
 import { getCurrentUserFn } from '@/lib/auth.server'
 import { getChannelsFn } from '@/lib/channel.server'
 import {
@@ -12,7 +12,10 @@ import {
   type VideoStatus,
   type VideoWithChannel,
 } from '@/lib/video.server'
-import { createPodcastContentFn } from '@/lib/podcast.server'
+import {
+  createPodcastContentFn,
+  createPodcastVideoFn,
+} from '@/lib/podcast.server'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -108,6 +111,9 @@ function VideosPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [generatingContent, setGeneratingContent] = useState(false)
+  const [generatingVideoId, setGeneratingVideoId] = useState<string | null>(
+    null,
+  )
 
   if (!user) {
     return (
@@ -197,6 +203,33 @@ function VideosPage() {
       )
     } finally {
       setGeneratingContent(false)
+    }
+  }
+
+  const handleStartGenerate = async (video: VideoWithChannel) => {
+    if (!video.content) {
+      alert('该视频还没有内容，请先生成内容')
+      return
+    }
+
+    setGeneratingVideoId(video._id)
+
+    try {
+      await createPodcastVideoFn({
+        data: {
+          title: video.title,
+          content: video.content,
+        },
+      })
+      alert('视频生成任务已提交成功！')
+    } catch (err) {
+      alert(
+        err instanceof Error
+          ? `生成失败: ${err.message}`
+          : '开始生成视频失败，请重试',
+      )
+    } finally {
+      setGeneratingVideoId(null)
     }
   }
 
@@ -357,6 +390,20 @@ function VideosPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleStartGenerate(video)}
+                              disabled={
+                                generatingVideoId === video._id ||
+                                !video.content
+                              }
+                              title={
+                                !video.content ? '请先生成内容' : '开始生成视频'
+                              }
+                            >
+                              <Play className="h-4 w-4" />
+                            </Button>
                             <Button
                               variant="ghost"
                               size="icon"
