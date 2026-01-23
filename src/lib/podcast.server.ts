@@ -10,6 +10,14 @@ export interface PodcastContentResponse {
   content: string
 }
 
+// API 实际返回的格式
+interface PodcastApiResponse {
+  output: Array<{
+    text: string
+    speaker: string
+  }>
+}
+
 // 获取 Podcast API 基础 URL
 function getPodcastApiBaseUrl(): string {
   const baseUrl = process.env.PODCAST_API_BASE_URL
@@ -48,9 +56,14 @@ async function createPodcastContent(
       )
     }
 
-    const data: PodcastContentResponse = await response.json()
-    console.log('API 返回数据:', data)
-    return data
+    const apiData: PodcastApiResponse = await response.json()
+    console.log('API 返回数据:', apiData)
+
+    // 将 output 数组转换为 JSON 字符串格式
+    const content = JSON.stringify(apiData.output, null, 2)
+    console.log('格式化后的内容:', content)
+
+    return { content }
   } catch (error) {
     console.error('调用 Podcast API 失败:', error)
     throw error

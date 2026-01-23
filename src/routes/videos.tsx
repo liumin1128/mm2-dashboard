@@ -450,6 +450,7 @@ function VideosPage() {
                 onChange={(e) => setForm({ ...form, prompt: e.target.value })}
                 placeholder="输入该视频的处理提示词..."
                 rows={4}
+                className="max-h-[200px] resize-y"
               />
             </div>
             <div className="grid gap-2">
@@ -474,6 +475,7 @@ function VideosPage() {
                 onChange={(e) => setForm({ ...form, content: e.target.value })}
                 placeholder="视频内容（可手动编辑或点击生成按钮自动生成）..."
                 rows={8}
+                className="max-h-[400px] resize-y"
               />
             </div>
             {error && (
