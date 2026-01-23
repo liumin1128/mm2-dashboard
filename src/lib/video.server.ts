@@ -13,8 +13,6 @@ export interface Video {
   _id?: ObjectId
   channelId: string
   title: string
-  subTitle: string
-  episodeTitle: string
   status: VideoStatus
   prompt: string
   createdAt: Date
@@ -72,8 +70,6 @@ async function fetchVideos(channelId?: string) {
       channelName: channel?.name as string | undefined,
       channelNameCn: channel?.nameCn as string | undefined,
       title: v.title as string,
-      subTitle: v.subTitle as string,
-      episodeTitle: v.episodeTitle as string,
       status: v.status as VideoStatus,
       prompt: v.prompt as string,
       createdAt: v.createdAt as Date,
@@ -122,8 +118,6 @@ export const getVideoFn = createServerFn({ method: 'GET' })
         channelName: channel?.name as string | undefined,
         channelNameCn: channel?.nameCn as string | undefined,
         title: video.title as string,
-        subTitle: video.subTitle as string,
-        episodeTitle: video.episodeTitle as string,
         status: video.status as VideoStatus,
         prompt: video.prompt as string,
         createdAt: video.createdAt as Date,
@@ -138,8 +132,6 @@ export const createVideoFn = createServerFn({ method: 'POST' })
     (data: {
       channelId: string
       title: string
-      subTitle: string
-      episodeTitle: string
       status: VideoStatus
       prompt: string
     }) => data,
@@ -160,8 +152,6 @@ export const createVideoFn = createServerFn({ method: 'POST' })
     const result = await db.collection('videos').insertOne({
       channelId: data.channelId,
       title: data.title,
-      subTitle: data.subTitle,
-      episodeTitle: data.episodeTitle,
       status: data.status,
       prompt: data.prompt,
       createdAt: now,
@@ -182,8 +172,6 @@ export const updateVideoFn = createServerFn({ method: 'POST' })
       id: string
       channelId: string
       title: string
-      subTitle: string
-      episodeTitle: string
       status: VideoStatus
       prompt: string
     }) => data,
@@ -206,8 +194,6 @@ export const updateVideoFn = createServerFn({ method: 'POST' })
         $set: {
           channelId: data.channelId,
           title: data.title,
-          subTitle: data.subTitle,
-          episodeTitle: data.episodeTitle,
           status: data.status,
           prompt: data.prompt,
           updatedAt: new Date(),

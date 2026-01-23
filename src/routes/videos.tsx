@@ -66,8 +66,6 @@ export const Route = createFileRoute('/videos')({
 interface VideoForm {
   channelId: string
   title: string
-  subTitle: string
-  episodeTitle: string
   status: VideoStatus
   prompt: string
 }
@@ -75,8 +73,6 @@ interface VideoForm {
 const emptyForm: VideoForm = {
   channelId: '',
   title: '',
-  subTitle: '',
-  episodeTitle: '',
   status: 'draft',
   prompt: '',
 }
@@ -147,8 +143,6 @@ function VideosPage() {
     setForm({
       channelId: video.channelId,
       title: video.title,
-      subTitle: video.subTitle,
-      episodeTitle: video.episodeTitle,
       status: video.status,
       prompt: video.prompt,
     })
@@ -281,8 +275,6 @@ function VideosPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>标题</TableHead>
-                    <TableHead>副标题</TableHead>
-                    <TableHead>集标题</TableHead>
                     <TableHead>关联频道</TableHead>
                     <TableHead>状态</TableHead>
                     <TableHead>创建时间</TableHead>
@@ -293,7 +285,7 @@ function VideosPage() {
                   {videos.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={7}
+                        colSpan={5}
                         className="text-muted-foreground h-24 text-center"
                       >
                         暂无视频数据
@@ -304,12 +296,6 @@ function VideosPage() {
                       <TableRow key={video._id}>
                         <TableCell className="max-w-[200px] truncate font-medium">
                           {video.title}
-                        </TableCell>
-                        <TableCell className="max-w-[150px] truncate">
-                          {video.subTitle || '-'}
-                        </TableCell>
-                        <TableCell className="max-w-[150px] truncate">
-                          {video.episodeTitle || '-'}
                         </TableCell>
                         <TableCell>
                           {video.channelNameCn || video.channelName || '-'}
@@ -389,26 +375,6 @@ function VideosPage() {
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 placeholder="视频标题"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="subTitle">副标题</Label>
-              <Input
-                id="subTitle"
-                value={form.subTitle}
-                onChange={(e) => setForm({ ...form, subTitle: e.target.value })}
-                placeholder="视频副标题"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="episodeTitle">集标题</Label>
-              <Input
-                id="episodeTitle"
-                value={form.episodeTitle}
-                onChange={(e) =>
-                  setForm({ ...form, episodeTitle: e.target.value })
-                }
-                placeholder="例如: EP01 - 开篇"
               />
             </div>
             <div className="grid gap-2">
