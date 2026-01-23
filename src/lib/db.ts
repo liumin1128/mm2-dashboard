@@ -1,8 +1,11 @@
 import { MongoClient, Db } from 'mongodb'
 
-const MONGODB_URI =
-  'mongodb+srv://970568830:SQcRHyV1mBm2BM5Z@cluster0.mpblvjc.mongodb.net/?appName=Cluster0'
-const DB_NAME = 'mm2'
+const MONGODB_URI = process.env.MONGODB_URI || ''
+const DB_NAME = process.env.MONGODB_DB || 'mm2'
+
+if (!MONGODB_URI) {
+  throw new Error('请在环境变量中设置 MONGODB_URI')
+}
 
 let cachedClient: MongoClient | null = null
 let cachedDb: Db | null = null
