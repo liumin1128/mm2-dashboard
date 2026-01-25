@@ -6,6 +6,9 @@ export type VideoStatus =
   | 'draft'
   | 'pending'
   | 'processing'
+  | 'creating-audio'
+  | 'creating-video'
+  | 'ready-to-publish'
   | 'completed'
   | 'failed'
 

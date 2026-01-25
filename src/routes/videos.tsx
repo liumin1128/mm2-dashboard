@@ -87,6 +87,9 @@ const statusOptions: { value: VideoStatus; label: string }[] = [
   { value: 'draft', label: '草稿' },
   { value: 'pending', label: '待处理' },
   { value: 'processing', label: '处理中' },
+  { value: 'creating-audio', label: '正在创建音频' },
+  { value: 'creating-video', label: '正在创建视频' },
+  { value: 'ready-to-publish', label: '待发布' },
   { value: 'completed', label: '已完成' },
   { value: 'failed', label: '失败' },
 ]
@@ -95,6 +98,9 @@ const statusColorMap: Record<VideoStatus, string> = {
   draft: 'bg-gray-100 text-gray-800',
   pending: 'bg-yellow-100 text-yellow-800',
   processing: 'bg-blue-100 text-blue-800',
+  'creating-audio': 'bg-purple-100 text-purple-800',
+  'creating-video': 'bg-indigo-100 text-indigo-800',
+  'ready-to-publish': 'bg-cyan-100 text-cyan-800',
   completed: 'bg-green-100 text-green-800',
   failed: 'bg-red-100 text-red-800',
 }
