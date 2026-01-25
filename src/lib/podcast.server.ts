@@ -94,7 +94,7 @@ async function createPodcastVideo(
   request: PodcastVideoRequest,
 ): Promise<PodcastVideoResponse> {
   const baseUrl = getPodcastApiBaseUrl()
-  const url = `${baseUrl}/webhook-test/podcast/video/create`
+  const url = `${baseUrl}/webhook/podcast/video/create`
 
   console.log('正在调用 Podcast Video API:', url)
   console.log('请求参数:', JSON.stringify(request, null, 2))
