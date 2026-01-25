@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  mm2-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DB=${MONGODB_DB:-mm2}
+      - JWT_SECRET=${JWT_SECRET}
+      - PODCAST_API_BASE_URL=${PODCAST_API_BASE_URL}
+    restart: unless-stopped
+    # 如果需要连接到本地 MongoDB，可以添加：
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"

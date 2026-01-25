@@ -1,0 +1,46 @@
+# 依赖目录
+node_modules
+.pnpm-store
+
+# 构建输出
+dist
+.output
+.vinxi
+.react-router
+
+# 开发工具
+.vscode
+.idea
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# 测试覆盖率
+coverage
+
+# 环境变量（不应包含在镜像中）
+.env
+.env.local
+.env.*.local
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# CI/CD
+.github
+.gitlab-ci.yml
+
+# 文档
+README.md
+LICENSE
+*.md
+
+# macOS
+.DS_Store
+
+# 临时文件
+*.tmp
+*.temp
+.cache
