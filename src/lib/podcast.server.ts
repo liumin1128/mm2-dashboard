@@ -79,6 +79,7 @@ export const createPodcastContentFn = createServerFn({ method: 'POST' })
 
 // 视频生成请求和响应类型定义
 export interface PodcastVideoRequest {
+  _id: string
   title: string
   content: string
 }
@@ -93,7 +94,7 @@ async function createPodcastVideo(
   request: PodcastVideoRequest,
 ): Promise<PodcastVideoResponse> {
   const baseUrl = getPodcastApiBaseUrl()
-  const url = `${baseUrl}/webhook/podcast/video/create`
+  const url = `${baseUrl}/webhook-test/podcast/video/create`
 
   console.log('正在调用 Podcast Video API:', url)
   console.log('请求参数:', JSON.stringify(request, null, 2))
@@ -101,6 +102,7 @@ async function createPodcastVideo(
   try {
     const response = await fetch(url, {
       method: 'POST',
+
       headers: {
         'Content-Type': 'application/json',
       },

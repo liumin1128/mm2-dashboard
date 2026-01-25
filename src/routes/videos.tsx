@@ -217,6 +217,7 @@ function VideosPage() {
     try {
       await createPodcastVideoFn({
         data: {
+          _id: video._id,
           title: video.title,
           content: video.content,
         },
