@@ -19,6 +19,9 @@ export interface Video {
   status: VideoStatus
   prompt: string
   content?: string
+  audioUrl?: string
+  subtitleUrl?: string
+  videoUrl?: string
   createdAt: Date
   updatedAt: Date
 }
@@ -77,6 +80,9 @@ async function fetchVideos(channelId?: string) {
       status: v.status as VideoStatus,
       prompt: v.prompt as string,
       content: v.content as string | undefined,
+      audioUrl: v.audioUrl as string | undefined,
+      subtitleUrl: v.subtitleUrl as string | undefined,
+      videoUrl: v.videoUrl as string | undefined,
       createdAt: v.createdAt as Date,
       updatedAt: v.updatedAt as Date,
     }
@@ -126,6 +132,9 @@ export const getVideoFn = createServerFn({ method: 'GET' })
         status: video.status as VideoStatus,
         prompt: video.prompt as string,
         content: video.content as string | undefined,
+        audioUrl: video.audioUrl as string | undefined,
+        subtitleUrl: video.subtitleUrl as string | undefined,
+        videoUrl: video.videoUrl as string | undefined,
         createdAt: video.createdAt as Date,
         updatedAt: video.updatedAt as Date,
       },
@@ -141,6 +150,9 @@ export const createVideoFn = createServerFn({ method: 'POST' })
       status: VideoStatus
       prompt: string
       content?: string
+      audioUrl?: string
+      subtitleUrl?: string
+      videoUrl?: string
     }) => data,
   )
   .handler(async ({ data }) => {
@@ -162,6 +174,9 @@ export const createVideoFn = createServerFn({ method: 'POST' })
       status: data.status,
       prompt: data.prompt,
       content: data.content || '',
+      audioUrl: data.audioUrl || '',
+      subtitleUrl: data.subtitleUrl || '',
+      videoUrl: data.videoUrl || '',
       createdAt: now,
       updatedAt: now,
     })
@@ -183,6 +198,9 @@ export const updateVideoFn = createServerFn({ method: 'POST' })
       status: VideoStatus
       prompt: string
       content?: string
+      audioUrl?: string
+      subtitleUrl?: string
+      videoUrl?: string
     }) => data,
   )
   .handler(async ({ data }) => {
@@ -206,6 +224,9 @@ export const updateVideoFn = createServerFn({ method: 'POST' })
           status: data.status,
           prompt: data.prompt,
           content: data.content || '',
+          audioUrl: data.audioUrl || '',
+          subtitleUrl: data.subtitleUrl || '',
+          videoUrl: data.videoUrl || '',
           updatedAt: new Date(),
         },
       },

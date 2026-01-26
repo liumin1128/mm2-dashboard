@@ -73,6 +73,9 @@ interface VideoForm {
   status: VideoStatus
   prompt: string
   content: string
+  audioUrl: string
+  subtitleUrl: string
+  videoUrl: string
 }
 
 const emptyForm: VideoForm = {
@@ -81,6 +84,9 @@ const emptyForm: VideoForm = {
   status: 'draft',
   prompt: '',
   content: '',
+  audioUrl: '',
+  subtitleUrl: '',
+  videoUrl: '',
 }
 
 const statusOptions: { value: VideoStatus; label: string }[] = [
@@ -162,6 +168,9 @@ function VideosPage() {
       status: video.status,
       prompt: video.prompt,
       content: video.content || '',
+      audioUrl: video.audioUrl || '',
+      subtitleUrl: video.subtitleUrl || '',
+      videoUrl: video.videoUrl || '',
     })
     setError('')
     setIsDialogOpen(true)
@@ -530,6 +539,35 @@ function VideosPage() {
                 placeholder="视频内容（可手动编辑或点击生成按钮自动生成）..."
                 rows={8}
                 className="max-h-[400px] resize-y"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="audioUrl">音频 URL</Label>
+              <Input
+                id="audioUrl"
+                value={form.audioUrl}
+                onChange={(e) => setForm({ ...form, audioUrl: e.target.value })}
+                placeholder="音频文件 URL"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="subtitleUrl">字幕 URL</Label>
+              <Input
+                id="subtitleUrl"
+                value={form.subtitleUrl}
+                onChange={(e) =>
+                  setForm({ ...form, subtitleUrl: e.target.value })
+                }
+                placeholder="字幕文件 URL"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="videoUrl">视频 URL</Label>
+              <Input
+                id="videoUrl"
+                value={form.videoUrl}
+                onChange={(e) => setForm({ ...form, videoUrl: e.target.value })}
+                placeholder="视频文件 URL"
               />
             </div>
             {error && (
