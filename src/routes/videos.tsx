@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useForm } from '@tanstack/react-form'
+import { useState, useCallback } from 'react'
 import { Plus, Pencil, Trash2, Sparkles, Play } from 'lucide-react'
 import { getCurrentUserFn } from '@/lib/auth.server'
 import { getChannelsFn } from '@/lib/channel.server'
@@ -67,7 +68,7 @@ export const Route = createFileRoute('/videos')({
   },
 })
 
-interface VideoForm {
+interface VideoFormValues {
   channelId: string
   title: string
   status: VideoStatus
@@ -78,7 +79,7 @@ interface VideoForm {
   videoUrl: string
 }
 
-const emptyForm: VideoForm = {
+const defaultFormValues: VideoFormValues = {
   channelId: '',
   title: '',
   status: 'draft',
@@ -119,13 +120,53 @@ function VideosPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [form, setForm] = useState<VideoForm>(emptyForm)
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
   const [generatingContent, setGeneratingContent] = useState(false)
   const [generatingVideoId, setGeneratingVideoId] = useState<string | null>(
     null,
   )
+
+  // TanStack Form
+  const form = useForm({
+    defaultValues: defaultFormValues,
+    onSubmit: async ({ value }) => {
+      if (editingId) {
+        const result = await updateVideoFn({
+          data: { id: editingId, ...value },
+        })
+        if (result.success) {
+          const channel = channels.find((ch) => ch._id === value.channelId)
+          setVideos(
+            videos.map((v) =>
+              v._id === editingId
+                ? {
+                    ...v,
+                    ...value,
+                    channelName: channel?.name,
+                    channelNameCn: channel?.nameCn,
+                    updatedAt: new Date(),
+                  }
+                : v,
+            ),
+          )
+          setIsDialogOpen(false)
+        } else {
+          throw new Error(result.message)
+        }
+      } else {
+        const result = await createVideoFn({ data: value })
+        if (result.success) {
+          const newVideos = await getVideosFn({
+            data: { channelId: filterChannelId || undefined },
+          })
+          setVideos(newVideos)
+          setIsDialogOpen(false)
+        } else {
+          throw new Error(result.message)
+        }
+      }
+    },
+  })
 
   if (!user) {
     return (
@@ -155,24 +196,21 @@ function VideosPage() {
 
   const handleOpenCreate = () => {
     setEditingId(null)
-    setForm(emptyForm)
-    setError('')
+    form.reset()
     setIsDialogOpen(true)
   }
 
   const handleOpenEdit = (video: VideoWithChannel) => {
     setEditingId(video._id)
-    setForm({
-      channelId: video.channelId,
-      title: video.title,
-      status: video.status,
-      prompt: video.prompt,
-      content: video.content || '',
-      audioUrl: video.audioUrl || '',
-      subtitleUrl: video.subtitleUrl || '',
-      videoUrl: video.videoUrl || '',
-    })
-    setError('')
+    form.reset()
+    form.setFieldValue('channelId', video.channelId)
+    form.setFieldValue('title', video.title)
+    form.setFieldValue('status', video.status)
+    form.setFieldValue('prompt', video.prompt)
+    form.setFieldValue('content', video.content || '')
+    form.setFieldValue('audioUrl', video.audioUrl || '')
+    form.setFieldValue('subtitleUrl', video.subtitleUrl || '')
+    form.setFieldValue('videoUrl', video.videoUrl || '')
     setIsDialogOpen(true)
   }
 
@@ -181,37 +219,44 @@ function VideosPage() {
     setIsDeleteDialogOpen(true)
   }
 
-  const handleGenerateContent = async () => {
-    if (!form.channelId) {
-      setError('请先选择关联频道')
+  const handleGenerateContent = useCallback(async () => {
+    const channelId = form.getFieldValue('channelId')
+    const prompt = form.getFieldValue('prompt')
+
+    if (!channelId) {
+      form.setFieldMeta('channelId', (prev) => ({
+        ...prev,
+        errorMap: { onChange: '请先选择关联频道' },
+      }))
       return
     }
 
-    const selectedChannel = channels.find((ch) => ch._id === form.channelId)
+    const selectedChannel = channels.find((ch) => ch._id === channelId)
     if (!selectedChannel) {
-      setError('所选频道不存在')
       return
     }
 
-    if (!form.prompt) {
-      setError('请先输入视频 Prompt')
+    if (!prompt) {
+      form.setFieldMeta('prompt', (prev) => ({
+        ...prev,
+        errorMap: { onChange: '请先输入视频 Prompt' },
+      }))
       return
     }
 
     setGeneratingContent(true)
-    setError('')
 
     try {
       const result = await createPodcastContentFn({
         data: {
           systemPrompt: selectedChannel.prompt || '',
-          userPrompt: form.prompt,
+          userPrompt: prompt,
         },
       })
 
-      setForm({ ...form, content: result.content })
+      form.setFieldValue('content', result.content)
     } catch (err) {
-      setError(
+      alert(
         err instanceof Error
           ? `生成失败: ${err.message}`
           : '生成内容失败，请重试',
@@ -219,7 +264,7 @@ function VideosPage() {
     } finally {
       setGeneratingContent(false)
     }
-  }
+  }, [form, channels])
 
   const handleStartGenerate = async (video: VideoWithChannel) => {
     if (!video.content) {
@@ -249,66 +294,10 @@ function VideosPage() {
     }
   }
 
-  const handleSubmit = async () => {
-    if (!form.channelId) {
-      setError('请选择关联频道')
-      return
-    }
-    if (!form.title) {
-      setError('标题为必填项')
-      return
-    }
-
-    setLoading(true)
-    setError('')
-
-    try {
-      if (editingId) {
-        const result = await updateVideoFn({
-          data: { id: editingId, ...form },
-        })
-        if (result.success) {
-          const channel = channels.find((ch) => ch._id === form.channelId)
-          setVideos(
-            videos.map((v) =>
-              v._id === editingId
-                ? {
-                    ...v,
-                    ...form,
-                    channelName: channel?.name,
-                    channelNameCn: channel?.nameCn,
-                    updatedAt: new Date(),
-                  }
-                : v,
-            ),
-          )
-          setIsDialogOpen(false)
-        } else {
-          setError(result.message)
-        }
-      } else {
-        const result = await createVideoFn({ data: form })
-        if (result.success) {
-          const newVideos = await getVideosFn({
-            data: { channelId: filterChannelId || undefined },
-          })
-          setVideos(newVideos)
-          setIsDialogOpen(false)
-        } else {
-          setError(result.message)
-        }
-      }
-    } catch {
-      setError('操作失败，请重试')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleDelete = async () => {
     if (!deletingId) return
 
-    setLoading(true)
+    setDeleteLoading(true)
     try {
       const result = await deleteVideoFn({ data: { id: deletingId } })
       if (result.success) {
@@ -319,7 +308,7 @@ function VideosPage() {
     } catch {
       // 错误处理
     } finally {
-      setLoading(false)
+      setDeleteLoading(false)
     }
   }
 
@@ -455,139 +444,246 @@ function VideosPage() {
               {editingId ? '修改视频信息' : '添加一个新的视频'}
             </DialogDescription>
           </DialogHeader>
-          <div className="-mx-1 grid gap-4 overflow-y-auto px-1 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="channelId">关联频道 *</Label>
-              <Select
-                value={form.channelId}
-                onValueChange={(value) =>
-                  setForm({ ...form, channelId: value })
-                }
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              form.handleSubmit()
+            }}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            <div className="-mx-1 grid flex-1 gap-4 overflow-y-auto px-1 py-4">
+              {/* 关联频道 */}
+              <form.Field
+                name="channelId"
+                validators={{
+                  onChange: ({ value }) =>
+                    !value ? '请选择关联频道' : undefined,
+                }}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="选择频道" />
-                </SelectTrigger>
-                <SelectContent>
-                  {channels.map((channel) => (
-                    <SelectItem key={channel._id} value={channel._id!}>
-                      {channel.nameCn} ({channel.name})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="title">标题 *</Label>
-              <Input
-                id="title"
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="视频标题"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="status">状态</Label>
-              <Select
-                value={form.status}
-                onValueChange={(value: VideoStatus) =>
-                  setForm({ ...form, status: value })
-                }
+                {(field) => (
+                  <div className="grid gap-2">
+                    <Label htmlFor={field.name}>关联频道 *</Label>
+                    <Select
+                      value={field.state.value}
+                      onValueChange={(value) => field.handleChange(value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="选择频道" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {channels.map((channel) => (
+                          <SelectItem key={channel._id} value={channel._id!}>
+                            {channel.nameCn} ({channel.name})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-destructive text-sm">
+                        {field.state.meta.errors.join(', ')}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form.Field>
+
+              {/* 标题 */}
+              <form.Field
+                name="title"
+                validators={{
+                  onChange: ({ value }) =>
+                    !value ? '标题为必填项' : undefined,
+                }}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="选择状态" />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="prompt">Prompt</Label>
-              <Textarea
-                id="prompt"
-                value={form.prompt}
-                onChange={(e) => setForm({ ...form, prompt: e.target.value })}
-                placeholder="输入该视频的处理提示词..."
-                rows={4}
-                className="max-h-[200px] resize-y"
-              />
-            </div>
-            <div className="grid gap-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="content">Content</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateContent}
-                  disabled={
-                    generatingContent || !form.channelId || !form.prompt
-                  }
-                >
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  {generatingContent ? '生成中...' : '生成内容'}
-                </Button>
-              </div>
-              <Textarea
-                id="content"
-                value={form.content}
-                onChange={(e) => setForm({ ...form, content: e.target.value })}
-                placeholder="视频内容（可手动编辑或点击生成按钮自动生成）..."
-                rows={8}
-                className="max-h-[400px] resize-y"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="audioUrl">音频 URL</Label>
-              <Input
-                id="audioUrl"
-                value={form.audioUrl}
-                onChange={(e) => setForm({ ...form, audioUrl: e.target.value })}
-                placeholder="音频文件 URL"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="subtitleUrl">字幕 URL</Label>
-              <Input
-                id="subtitleUrl"
-                value={form.subtitleUrl}
-                onChange={(e) =>
-                  setForm({ ...form, subtitleUrl: e.target.value })
+                {(field) => (
+                  <div className="grid gap-2">
+                    <Label htmlFor={field.name}>标题 *</Label>
+                    <Input
+                      id={field.name}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                      placeholder="视频标题"
+                    />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-destructive text-sm">
+                        {field.state.meta.errors.join(', ')}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form.Field>
+
+              {/* 状态 */}
+              <form.Field name="status">
+                {(field) => (
+                  <div className="grid gap-2">
+                    <Label htmlFor={field.name}>状态</Label>
+                    <Select
+                      value={field.state.value}
+                      onValueChange={(value: VideoStatus) =>
+                        field.handleChange(value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="选择状态" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {statusOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </form.Field>
+
+              {/* Prompt */}
+              <form.Field name="prompt">
+                {(field) => (
+                  <div className="grid gap-2">
+                    <Label htmlFor={field.name}>Prompt</Label>
+                    <Textarea
+                      id={field.name}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                      placeholder="输入该视频的处理提示词..."
+                      rows={4}
+                      className="max-h-[200px] resize-y"
+                    />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-destructive text-sm">
+                        {field.state.meta.errors.join(', ')}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form.Field>
+
+              {/* Content */}
+              <form.Field name="content">
+                {(field) => (
+                  <div className="grid gap-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor={field.name}>Content</Label>
+                      <form.Subscribe
+                        selector={(state) => [
+                          state.values.channelId,
+                          state.values.prompt,
+                        ]}
+                      >
+                        {([channelId, prompt]) => (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleGenerateContent}
+                            disabled={
+                              generatingContent || !channelId || !prompt
+                            }
+                          >
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            {generatingContent ? '生成中...' : '生成内容'}
+                          </Button>
+                        )}
+                      </form.Subscribe>
+                    </div>
+                    <Textarea
+                      id={field.name}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                      placeholder="视频内容（可手动编辑或点击生成按钮自动生成）..."
+                      rows={8}
+                      className="max-h-[400px] resize-y"
+                    />
+                  </div>
+                )}
+              </form.Field>
+
+              {/* 音频 URL */}
+              <form.Field name="audioUrl">
+                {(field) => (
+                  <div className="grid gap-2">
+                    <Label htmlFor={field.name}>音频 URL</Label>
+                    <Input
+                      id={field.name}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                      placeholder="音频文件 URL"
+                    />
+                  </div>
+                )}
+              </form.Field>
+
+              {/* 字幕 URL */}
+              <form.Field name="subtitleUrl">
+                {(field) => (
+                  <div className="grid gap-2">
+                    <Label htmlFor={field.name}>字幕 URL</Label>
+                    <Input
+                      id={field.name}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                      placeholder="字幕文件 URL"
+                    />
+                  </div>
+                )}
+              </form.Field>
+
+              {/* 视频 URL */}
+              <form.Field name="videoUrl">
+                {(field) => (
+                  <div className="grid gap-2">
+                    <Label htmlFor={field.name}>视频 URL</Label>
+                    <Input
+                      id={field.name}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                      placeholder="视频文件 URL"
+                    />
+                  </div>
+                )}
+              </form.Field>
+
+              {/* 表单级错误 */}
+              <form.Subscribe selector={(state) => state.errors}>
+                {(errors) =>
+                  errors.length > 0 ? (
+                    <div className="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
+                      {errors.join(', ')}
+                    </div>
+                  ) : null
                 }
-                placeholder="字幕文件 URL"
-              />
+              </form.Subscribe>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="videoUrl">视频 URL</Label>
-              <Input
-                id="videoUrl"
-                value={form.videoUrl}
-                onChange={(e) => setForm({ ...form, videoUrl: e.target.value })}
-                placeholder="视频文件 URL"
-              />
-            </div>
-            {error && (
-              <div className="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
-                {error}
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsDialogOpen(false)}
-              disabled={loading}
-            >
-              取消
-            </Button>
-            <Button onClick={handleSubmit} disabled={loading}>
-              {loading ? '保存中...' : '保存'}
-            </Button>
-          </DialogFooter>
+
+            <DialogFooter className="shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+              >
+                取消
+              </Button>
+              <form.Subscribe
+                selector={(state) => [state.canSubmit, state.isSubmitting]}
+              >
+                {([canSubmit, isSubmitting]) => (
+                  <Button type="submit" disabled={!canSubmit || isSubmitting}>
+                    {isSubmitting ? '保存中...' : '保存'}
+                  </Button>
+                )}
+              </form.Subscribe>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -604,16 +700,16 @@ function VideosPage() {
             <Button
               variant="outline"
               onClick={() => setIsDeleteDialogOpen(false)}
-              disabled={loading}
+              disabled={deleteLoading}
             >
               取消
             </Button>
             <Button
               variant="destructive"
               onClick={handleDelete}
-              disabled={loading}
+              disabled={deleteLoading}
             >
-              {loading ? '删除中...' : '删除'}
+              {deleteLoading ? '删除中...' : '删除'}
             </Button>
           </DialogFooter>
         </DialogContent>
