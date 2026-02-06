@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useForm } from '@tanstack/react-form'
 import { useState, useCallback } from 'react'
-import { Plus, Pencil, Trash2, Sparkles, Play } from 'lucide-react'
+import { Plus, Pencil, Trash2, Sparkles, Play, X } from 'lucide-react'
 import { getCurrentUserFn } from '@/lib/auth.server'
 import { getChannelsFn } from '@/lib/channel.server'
 import {
@@ -10,6 +10,7 @@ import {
   createVideoFn,
   updateVideoFn,
   deleteVideoFn,
+  createVideoMetadataFn,
   type VideoStatus,
   type VideoWithChannel,
 } from '@/lib/video.server'
@@ -74,6 +75,8 @@ interface VideoFormValues {
   status: VideoStatus
   prompt: string
   content: string
+  description: string
+  tags: string[]
   audioUrl: string
   subtitleUrl: string
   videoUrl: string
@@ -85,6 +88,8 @@ const defaultFormValues: VideoFormValues = {
   status: 'draft',
   prompt: '',
   content: '',
+  description: '',
+  tags: [],
   audioUrl: '',
   subtitleUrl: '',
   videoUrl: '',
@@ -125,6 +130,7 @@ function VideosPage() {
   const [generatingVideoId, setGeneratingVideoId] = useState<string | null>(
     null,
   )
+  const [generatingMetadata, setGeneratingMetadata] = useState(false)
 
   // TanStack Form
   const form = useForm({
@@ -208,6 +214,8 @@ function VideosPage() {
     form.setFieldValue('status', video.status)
     form.setFieldValue('prompt', video.prompt)
     form.setFieldValue('content', video.content || '')
+    form.setFieldValue('description', video.description || '')
+    form.setFieldValue('tags', video.tags || [])
     form.setFieldValue('audioUrl', video.audioUrl || '')
     form.setFieldValue('subtitleUrl', video.subtitleUrl || '')
     form.setFieldValue('videoUrl', video.videoUrl || '')
@@ -265,6 +273,37 @@ function VideosPage() {
       setGeneratingContent(false)
     }
   }, [form, channels])
+
+  const handleGenerateMetadata = useCallback(async () => {
+    const content = form.getFieldValue('content')
+
+    if (!content) {
+      form.setFieldMeta('content', (prev) => ({
+        ...prev,
+        errorMap: { onChange: '请先输入或生成视频 Content' },
+      }))
+      return
+    }
+
+    setGeneratingMetadata(true)
+
+    try {
+      const result = await createVideoMetadataFn({
+        data: { content },
+      })
+
+      form.setFieldValue('description', result.description)
+      form.setFieldValue('tags', result.tags)
+    } catch (err) {
+      alert(
+        err instanceof Error
+          ? `生成失败: ${err.message}`
+          : '生成元数据失败，请重试',
+      )
+    } finally {
+      setGeneratingMetadata(false)
+    }
+  }, [form])
 
   const handleStartGenerate = async (video: VideoWithChannel) => {
     if (!video.content) {
@@ -601,6 +640,101 @@ function VideosPage() {
                       rows={8}
                       className="max-h-[400px] resize-y"
                     />
+                  </div>
+                )}
+              </form.Field>
+
+              {/* Description */}
+              <form.Field name="description">
+                {(field) => (
+                  <div className="grid gap-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor={field.name}>描述</Label>
+                      <form.Subscribe
+                        selector={(state) => state.values.content}
+                      >
+                        {([content]) => (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleGenerateMetadata}
+                            disabled={generatingMetadata || !content}
+                          >
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            {generatingMetadata ? '生成中...' : '生成元数据'}
+                          </Button>
+                        )}
+                      </form.Subscribe>
+                    </div>
+                    <Textarea
+                      id={field.name}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                      placeholder="视频描述（可手动编辑或点击生成按钮自动生成）..."
+                      rows={4}
+                      className="max-h-[200px] resize-y"
+                    />
+                  </div>
+                )}
+              </form.Field>
+
+              {/* Tags */}
+              <form.Field name="tags">
+                {(field) => (
+                  <div className="grid gap-2">
+                    <Label htmlFor={field.name}>标签</Label>
+                    <div className="grid gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        {field.state.value.map((tag, index) => (
+                          <Badge
+                            key={`${tag}-${index}`}
+                            variant="secondary"
+                            className="flex items-center gap-1.5"
+                          >
+                            {tag}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newTags = field.state.value.filter(
+                                  (_, i) => i !== index,
+                                )
+                                field.handleChange(newTags)
+                              }}
+                              className="ml-1"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                      <Input
+                        placeholder="输入标签后按回车键添加（多个标签用逗号分隔）..."
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            const input = e.currentTarget
+                            const value = input.value.trim()
+                            if (value) {
+                              const newTags = value
+                                .split(',')
+                                .map((t) => t.trim())
+                                .filter(
+                                  (t) => t && !field.state.value.includes(t),
+                                )
+                              if (newTags.length > 0) {
+                                field.handleChange([
+                                  ...field.state.value,
+                                  ...newTags,
+                                ])
+                                input.value = ''
+                              }
+                            }
+                          }
+                        }}
+                      />
+                    </div>
                   </div>
                 )}
               </form.Field>

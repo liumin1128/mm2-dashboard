@@ -19,6 +19,8 @@ export interface Video {
   status: VideoStatus
   prompt: string
   content?: string
+  description?: string
+  tags?: string[]
   audioUrl?: string
   subtitleUrl?: string
   videoUrl?: string
@@ -80,6 +82,8 @@ async function fetchVideos(channelId?: string) {
       status: v.status as VideoStatus,
       prompt: v.prompt as string,
       content: v.content as string | undefined,
+      description: v.description as string | undefined,
+      tags: v.tags as string[] | undefined,
       audioUrl: v.audioUrl as string | undefined,
       subtitleUrl: v.subtitleUrl as string | undefined,
       videoUrl: v.videoUrl as string | undefined,
@@ -132,6 +136,8 @@ export const getVideoFn = createServerFn({ method: 'GET' })
         status: video.status as VideoStatus,
         prompt: video.prompt as string,
         content: video.content as string | undefined,
+        description: video.description as string | undefined,
+        tags: video.tags as string[] | undefined,
         audioUrl: video.audioUrl as string | undefined,
         subtitleUrl: video.subtitleUrl as string | undefined,
         videoUrl: video.videoUrl as string | undefined,
@@ -150,6 +156,8 @@ export const createVideoFn = createServerFn({ method: 'POST' })
       status: VideoStatus
       prompt: string
       content?: string
+      description?: string
+      tags?: string[]
       audioUrl?: string
       subtitleUrl?: string
       videoUrl?: string
@@ -174,6 +182,8 @@ export const createVideoFn = createServerFn({ method: 'POST' })
       status: data.status,
       prompt: data.prompt,
       content: data.content || '',
+      description: data.description || '',
+      tags: data.tags || [],
       audioUrl: data.audioUrl || '',
       subtitleUrl: data.subtitleUrl || '',
       videoUrl: data.videoUrl || '',
@@ -198,6 +208,8 @@ export const updateVideoFn = createServerFn({ method: 'POST' })
       status: VideoStatus
       prompt: string
       content?: string
+      description?: string
+      tags?: string[]
       audioUrl?: string
       subtitleUrl?: string
       videoUrl?: string
@@ -224,6 +236,8 @@ export const updateVideoFn = createServerFn({ method: 'POST' })
           status: data.status,
           prompt: data.prompt,
           content: data.content || '',
+          description: data.description || '',
+          tags: data.tags || [],
           audioUrl: data.audioUrl || '',
           subtitleUrl: data.subtitleUrl || '',
           videoUrl: data.videoUrl || '',
@@ -253,4 +267,64 @@ export const deleteVideoFn = createServerFn({ method: 'POST' })
     }
 
     return { success: true, message: '删除成功' }
+  })
+
+// Video 元数据请求和响应类型定义
+export interface VideoMetadataRequest {
+  content: string
+}
+
+export interface VideoMetadataResponse {
+  description: string
+  tags: string[]
+}
+
+// 调用外部 API 创建视频元数据
+async function createVideoMetadata(
+  request: VideoMetadataRequest,
+): Promise<VideoMetadataResponse> {
+  const baseUrl = process.env.PODCAST_API_BASE_URL
+  if (!baseUrl) {
+    throw new Error('PODCAST_API_BASE_URL 环境变量未设置')
+  }
+
+  const url = `${baseUrl}/webhook/podcast/meta/create`
+
+  console.log('正在调用视频元数据 API:', url)
+  console.log('请求参数:', JSON.stringify(request, null, 2))
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    })
+
+    console.log('API 响应状态:', response.status, response.statusText)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('API 错误响应:', errorText)
+      throw new Error(
+        `视频元数据 API 请求失败: ${response.status} ${response.statusText} - ${errorText}`,
+      )
+    }
+
+    const apiData: VideoMetadataResponse = await response.json()
+    console.log('API 返回数据:', apiData)
+
+    return apiData
+  } catch (error) {
+    console.error('调用视频元数据 API 失败:', error)
+    throw error
+  }
+}
+
+// 创建 Server Function 供前端调用
+export const createVideoMetadataFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: VideoMetadataRequest) => data)
+  .handler(async ({ data }) => {
+    return await createVideoMetadata(data)
   })
