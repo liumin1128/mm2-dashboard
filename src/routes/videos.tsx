@@ -637,8 +637,8 @@ function VideosPage() {
                       onChange={(e) => field.handleChange(e.target.value)}
                       onBlur={field.handleBlur}
                       placeholder="视频内容（可手动编辑或点击生成按钮自动生成）..."
-                      rows={8}
-                      className="max-h-[400px] resize-y"
+                      rows={4}
+                      className="max-h-[200px] resize-y"
                     />
                   </div>
                 )}
