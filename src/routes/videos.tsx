@@ -103,6 +103,7 @@ const statusOptions: { value: VideoStatus; label: string }[] = [
   { value: 'creating-audio', label: '正在创建音频' },
   { value: 'creating-video', label: '正在创建视频' },
   { value: 'ready-to-publish', label: '待发布' },
+  { value: 'uploading', label: '上传中' },
   { value: 'completed', label: '已完成' },
   { value: 'failed', label: '失败' },
 ]
@@ -114,6 +115,7 @@ const statusColorMap: Record<VideoStatus, string> = {
   'creating-audio': 'bg-purple-100 text-purple-800',
   'creating-video': 'bg-indigo-100 text-indigo-800',
   'ready-to-publish': 'bg-cyan-100 text-cyan-800',
+  uploading: 'bg-orange-100 text-orange-800',
   completed: 'bg-green-100 text-green-800',
   failed: 'bg-red-100 text-red-800',
 }

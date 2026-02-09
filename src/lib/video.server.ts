@@ -9,6 +9,7 @@ export type VideoStatus =
   | 'creating-audio'
   | 'creating-video'
   | 'ready-to-publish'
+  | 'uploading'
   | 'completed'
   | 'failed'
 
@@ -338,7 +339,7 @@ async function uploadVideo(
     throw new Error('PODCAST_API_BASE_URL 环境变量未设置')
   }
 
-  const apiUrl = `${baseUrl}/webhook-test/podcast/video/upload`
+  const apiUrl = `${baseUrl}/webhook/podcast/video/upload`
 
   // 构建请求体，包含所有 video 字段
   const requestBody = {
