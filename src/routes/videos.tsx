@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useForm } from '@tanstack/react-form'
 import { useState, useCallback } from 'react'
-import { Plus, Pencil, Trash2, Sparkles, Play, X } from 'lucide-react'
+import { Plus, Pencil, Trash2, Sparkles, Play, X, Upload } from 'lucide-react'
 import { getCurrentUserFn } from '@/lib/auth.server'
 import { getChannelsFn } from '@/lib/channel.server'
 import {
@@ -11,6 +11,7 @@ import {
   updateVideoFn,
   deleteVideoFn,
   createVideoMetadataFn,
+  uploadVideoFn,
   type VideoStatus,
   type VideoWithChannel,
 } from '@/lib/video.server'
@@ -131,6 +132,7 @@ function VideosPage() {
     null,
   )
   const [generatingMetadata, setGeneratingMetadata] = useState(false)
+  const [uploadingVideoId, setUploadingVideoId] = useState<string | null>(null)
 
   // TanStack Form
   const form = useForm({
@@ -351,6 +353,42 @@ function VideosPage() {
     }
   }
 
+  const handleUpload = async (video: VideoWithChannel) => {
+    setUploadingVideoId(video._id)
+    try {
+      const result = await uploadVideoFn({
+        data: {
+          _id: video._id,
+          channelId: video.channelId,
+          title: video.title,
+          status: video.status,
+          prompt: video.prompt,
+          content: video.content,
+          description: video.description,
+          tags: video.tags,
+          audioUrl: video.audioUrl,
+          subtitleUrl: video.subtitleUrl,
+          videoUrl: video.videoUrl,
+          createdAt: video.createdAt,
+          updatedAt: video.updatedAt,
+        },
+      })
+      if (result.success) {
+        alert(`视频上传成功: ${result.message}`)
+      } else {
+        alert(`视频上传失败: ${result.message}`)
+      }
+    } catch (err) {
+      alert(
+        err instanceof Error
+          ? `上传失败: ${err.message}`
+          : '上传视频失败，请重试',
+      )
+    } finally {
+      setUploadingVideoId(null)
+    }
+  }
+
   const getStatusLabel = (status: VideoStatus) => {
     return statusOptions.find((s) => s.value === status)?.label || status
   }
@@ -434,6 +472,15 @@ function VideosPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleUpload(video)}
+                              disabled={uploadingVideoId === video._id}
+                              title="上传视频"
+                            >
+                              <Upload className="h-4 w-4" />
+                            </Button>
                             <Button
                               variant="ghost"
                               size="icon"

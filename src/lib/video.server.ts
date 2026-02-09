@@ -328,3 +328,116 @@ export const createVideoMetadataFn = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     return await createVideoMetadata(data)
   })
+
+// 上传视频到外部 API
+async function uploadVideo(
+  video: Video,
+): Promise<{ code: number; message: string }> {
+  const baseUrl = process.env.PODCAST_API_BASE_URL
+  if (!baseUrl) {
+    throw new Error('PODCAST_API_BASE_URL 环境变量未设置')
+  }
+
+  const apiUrl = `${baseUrl}/webhook-test/podcast/video/upload`
+
+  // 构建请求体，包含所有 video 字段
+  const requestBody = {
+    _id: video._id?.toString(),
+    channelId: video.channelId,
+    title: video.title,
+    status: video.status,
+    prompt: video.prompt,
+    content: video.content,
+    description: video.description,
+    tags: video.tags,
+    audioUrl: video.audioUrl,
+    subtitleUrl: video.subtitleUrl,
+    videoUrl: video.videoUrl,
+    createdAt: video.createdAt,
+    updatedAt: video.updatedAt,
+  }
+
+  console.log('正在上传视频到:', apiUrl)
+  console.log('上传参数:', JSON.stringify(requestBody, null, 2))
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    })
+
+    console.log('上传 API 响应状态:', response.status, response.statusText)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('上传 API 错误响应:', errorText)
+      throw new Error(
+        `视频上传 API 请求失败: ${response.status} ${response.statusText} - ${errorText}`,
+      )
+    }
+
+    const apiData: { code: number; message: string } = await response.json()
+    console.log('上传 API 返回数据:', apiData)
+
+    return apiData
+  } catch (error) {
+    console.error('调用视频上传 API 失败:', error)
+    throw error
+  }
+}
+
+// 上传视频 Server Function 供前端调用
+export const uploadVideoFn = createServerFn({ method: 'POST' })
+  .inputValidator(
+    (data: {
+      _id?: string
+      channelId: string
+      title: string
+      status: VideoStatus
+      prompt: string
+      content?: string
+      description?: string
+      tags?: string[]
+      audioUrl?: string
+      subtitleUrl?: string
+      videoUrl?: string
+      createdAt: Date
+      updatedAt: Date
+    }) => data,
+  )
+  .handler(async ({ data }) => {
+    try {
+      const video: Video = {
+        _id: data._id ? new ObjectId(data._id) : undefined,
+        channelId: data.channelId,
+        title: data.title,
+        status: data.status,
+        prompt: data.prompt,
+        content: data.content,
+        description: data.description,
+        tags: data.tags,
+        audioUrl: data.audioUrl,
+        subtitleUrl: data.subtitleUrl,
+        videoUrl: data.videoUrl,
+        createdAt: data.createdAt,
+        updatedAt: data.updatedAt,
+      }
+
+      const result = await uploadVideo(video)
+      return {
+        success: true,
+        code: result.code,
+        message: result.message,
+      }
+    } catch (error) {
+      console.error('上传视频失败:', error)
+      return {
+        success: false,
+        code: 500,
+        message: error instanceof Error ? error.message : '上传视频失败',
+      }
+    }
+  })
