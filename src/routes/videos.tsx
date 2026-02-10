@@ -478,8 +478,28 @@ function VideosPage() {
                               variant="ghost"
                               size="icon"
                               onClick={() => handleUpload(video)}
-                              disabled={uploadingVideoId === video._id}
-                              title="上传视频"
+                              disabled={
+                                uploadingVideoId === video._id ||
+                                !video.videoUrl ||
+                                ![
+                                  'ready-to-publish',
+                                  'completed',
+                                  'uploading',
+                                  'failed',
+                                ].includes(video.status)
+                              }
+                              title={
+                                !video.videoUrl
+                                  ? '请先上传视频文件'
+                                  : ![
+                                        'ready-to-publish',
+                                        'completed',
+                                        'uploading',
+                                        'failed',
+                                      ].includes(video.status)
+                                    ? '该状态无法上传'
+                                    : '上传视频'
+                              }
                             >
                               <Upload className="h-4 w-4" />
                             </Button>
@@ -489,10 +509,17 @@ function VideosPage() {
                               onClick={() => handleStartGenerate(video)}
                               disabled={
                                 generatingVideoId === video._id ||
-                                !video.content
+                                !video.content ||
+                                ['completed', 'failed'].includes(video.status)
                               }
                               title={
-                                !video.content ? '请先生成内容' : '开始生成视频'
+                                !video.content
+                                  ? '请先生成内容'
+                                  : ['completed', 'failed'].includes(
+                                        video.status,
+                                      )
+                                    ? '该状态无法生成视频'
+                                    : '开始生成视频'
                               }
                             >
                               <Play className="h-4 w-4" />
